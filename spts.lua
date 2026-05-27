@@ -1432,6 +1432,7 @@ task.spawn(function()
     end
 end)
 local highlightsTable = {}
+local espLabelsTable = {}
 local function updateESPNameLabel(targetPlayer, targetModel, highlightColour)
     local head = targetModel:FindFirstChild("Head")
     if not head then return end
