@@ -22,6 +22,22 @@ local BIG_SUFFIXES = {
 local DATA_FILE = "SPTSRWebhookData_" .. player.UserId .. ".json"
 local HttpService = game:GetService("HttpService")
 local RunService  = game:GetService("RunService")
+local GuiService
+pcall(function()
+    GuiService = cloneref(game:GetService("GuiService"))
+end)
+if not GuiService then
+    GuiService = game:GetService("GuiService")
+end
+
+GuiService.ErrorMessageChanged:Connect(function(msg)
+    if msg ~= "" then
+        task.wait(1)
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+        end)
+    end
+end)
 local function getStat(attr)
     local ok, val = pcall(function() return player:GetAttribute(attr) end)
     if ok and type(val) == "number" then return val end
@@ -87,22 +103,22 @@ local function saveData(stats, execCount)
     end)
 end
 local sessionStart = tick()
-pcall(function()
-    local persistPath = "autoexec/SPTSLegends.lua"
-    local selfSource = game:HttpGet("YOUR_RAW_SCRIPT_URL_HERE")
-    local shouldWrite = true
-    if isfile(persistPath) then
-        local existing = readfile(persistPath)
-        if existing == selfSource then
-            shouldWrite = false
-            print("[Persistence] Autoexec already up to date")
+local SCRIPT_URL = "https://raw.githubusercontent.com/olivsmi73-cmyk/tetstet/refs/heads/main/spts.lua"
+local queueteleport = queueteleport or queue_on_teleport or nil
+
+if queueteleport then
+    queueteleport(([[loadstring(game:HttpGet("%s"))()]]):format(SCRIPT_URL))
+    print("[Persistence] Queued for teleport")
+else
+    pcall(function()
+        local persistPath = "autoexec/SPTSLegends.lua"
+        local loaderSource = ([[loadstring(game:HttpGet("%s"))()]]):format(SCRIPT_URL)
+        if not isfile(persistPath) or readfile(persistPath) ~= loaderSource then
+            writefile(persistPath, loaderSource)
+            print("[Persistence] Saved to autoexec")
         end
-    end
-    if shouldWrite then
-        writefile(persistPath, selfSource)
-        print("[Persistence] Autoexec saved/updated")
-    end
-end)
+    end)
+end
 task.spawn(function()
     task.wait(6)
     local userId     = player.UserId
@@ -1900,9 +1916,6 @@ Library:OnUnload(function()
         math.floor((totalSecs % 3600) / 60),
         totalSecs % 60
     )
-    pcall(function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
-    end)
     pcall(function()
         local existing = loadSavedStats() or {}
         existing.lastSessionDuration = finalDur
